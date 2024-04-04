@@ -35,6 +35,10 @@ def weekdays(x):
 def monthdays(x):
 	return np.array([gmtime(x).tm_mday for x in x])
 
+# Разметка месяцев на массиве временным меток
+def months(x):
+	return np.array([gmtime(x).tm_mon for x in x])
+
 # Посетителей в год
 def visitors(days=365):
 	daily = np.random.normal(200, 5, [days])
@@ -54,9 +58,6 @@ def visitors(days=365):
 	def debug():
 		plt.figure(figsize=[16, 9], dpi=150)
 
-		# Форматирование даты и времени
-		# Автоматический выбор интервала подписей
-		# ISO8601 время: "%Y-%m-%d %H:%M:%S"
 		plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
 		plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M:%S"))
 		plt.setp(plt.gca().get_xticklabels(), rotation=30, ha="right")
@@ -64,5 +65,34 @@ def visitors(days=365):
 		plt.step(x/3600/24, y)
 		plt.show()
 
-	debug()
+	return x, y
 
+# Каждое первое число месяца платим аренду за помещение
+def rent(x):
+	return np.convolve(monthdays(x) == 1, [1, -1], mode="same") > 0
+
+# Попробуем смоделировать вместимость
+x, y = visitors(365)
+
+occupancy = y.clip(0, 20)
+overcapacity = y - occupancy
+
+# Просто предположим, что всегда покупают на 200 +- 100 руб
+avg_checks = np.abs( np.random.normal(200, 100, y.shape) )
+income = occupancy * avg_checks
+
+profit = np.cumsum(income - rent(x)*200000)
+
+plt.figure(figsize=[16, 9], dpi=150)
+
+# Форматирование даты и времени
+# Автоматический выбор интервала подписей
+# ISO8601 время: "%Y-%m-%d %H:%M:%S"
+plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator())
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M:%S"))
+plt.setp(plt.gca().get_xticklabels(), rotation=30, ha="right")
+
+plt.step(x/3600/24, occupancy)
+#plt.step(x/3600/24, profit)
+plt.tight_layout()
+plt.show()

@@ -7,6 +7,14 @@ import numpy as np
 df = pd.read_csv("RestaurantDataVets_All_2to5.csv", na_values="?", parse_dates=[2])
 df = df.dropna()
 
+def filter():
+	q_low = df["2to5"].quantile(0.01)
+	q_hi  = df["2to5"].quantile(0.99)
+
+	return df[(df["2to5"] < q_hi) & (df["2to5"] > q_low)]
+
+df = filter()
+
 """
 >>> df.dtypes
 Index                       int64
@@ -111,21 +119,21 @@ def linear_v2():
 
 	y = df["2to5"]
 	x = np.hstack([
-		time / time.max(),
-		np.float64(df.Monday)[:, None],
-		np.float64(df.Tuesday)[:, None],
-		np.float64(df.Wednesday)[:, None],
-		np.float64(df.Thursday)[:, None],
-		np.float64(df.Friday)[:, None],
-		np.float64(df.Saturday)[:, None],
-		np.float64(df.Sunday)[:, None],
-		np.float64(df.Monday.cumsum() * df.Monday)[:, None] ** 0.5,
-		np.float64(df.Tuesday.cumsum() * df.Tuesday)[:, None] ** 0.5,
-		np.float64(df.Wednesday.cumsum() * df.Wednesday)[:, None] ** 0.5,
-		np.float64(df.Thursday.cumsum() * df.Thursday)[:, None] ** 0.5,
-		np.float64(df.Friday.cumsum() * df.Friday)[:, None] ** 0.5,
-		np.float64(df.Saturday.cumsum() * df.Saturday)[:, None] ** 0.5,
-		np.float64(df.Sunday.cumsum() * df.Sunday)[:, None] ** 0.5,
+		#time / time.max(),
+		#np.float64(df.Monday)[:, None],
+		#np.float64(df.Tuesday)[:, None],
+		#np.float64(df.Wednesday)[:, None],
+		#np.float64(df.Thursday)[:, None],
+		#np.float64(df.Friday)[:, None],
+		#np.float64(df.Saturday)[:, None],
+		#np.float64(df.Sunday)[:, None],
+		np.float64(df.Monday.cumsum() * df.Monday)[:, None] ** 0.3,
+		np.float64(df.Tuesday.cumsum() * df.Tuesday)[:, None] ** 0.3,
+		np.float64(df.Wednesday.cumsum() * df.Wednesday)[:, None] ** 0.3,
+		np.float64(df.Thursday.cumsum() * df.Thursday)[:, None] ** 0.3,
+		np.float64(df.Friday.cumsum() * df.Friday)[:, None] ** 0.3,
+		np.float64(df.Saturday.cumsum() * df.Saturday)[:, None] ** 0.3,
+		np.float64(df.Sunday.cumsum() * df.Sunday)[:, None] ** 0.3,
 	])
 
 	train_x, test_x = x[:800], x[800:]

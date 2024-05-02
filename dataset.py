@@ -1,4 +1,5 @@
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import mean_absolute_error
 from matplotlib.dates import AutoDateLocator, DateFormatter
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -141,9 +142,11 @@ def linear_v2():
 
 	model = Lasso()
 	model.fit(train_x, train_y)
-	print( model.score(test_x, test_y) )
+	print("Score:", model.score(test_x, test_y) )
 
 	preds = model.predict(x)
+
+	print("MAE:", mean_absolute_error(y, preds))
 
 	# Visuals
 	fig, axes = plt.subplots()

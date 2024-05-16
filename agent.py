@@ -123,6 +123,10 @@ def linear_v2():
 class Agent():
 	def __init__(self):
 		self.planned_capacity = [400]*7
+		self.leftover_queue = [0]*7
+
+		self.history_leftovers = []
+		self.history_expired = []
 		self.history_demand = []
 		self.history_plan = []
 		self.history_met = []
@@ -133,30 +137,51 @@ class Agent():
 
 	def visual_init(self):
 		self.fig, self.axes = plt.subplots()
+		self.fig.tight_layout()
 
 	def advance(self, ts, demand):
+		expired = self.leftover_queue.pop(0)
 		plan = self.planned_capacity.pop(0)
-		leftovers = plan - demand
+		surplus = max(plan - demand, 0)
+		deficit = max(demand - plan, 0)
 
+		self.history_expired.append(expired)
 		self.history_demand.append(demand)
 		self.history_plan.append(plan)
 		self.history_ts.append(ts)
 
-		if leftovers >= 0:
-			self.history_met.append(demand)
+		if surplus:
+			met = demand
+		elif deficit:
+			leftovers = self.tap_surplus(deficit)
+			met = demand - deficit + leftovers
 		else:
-			self.history_met.append(demand + leftovers)
+			print("Exact prediction!")
+			met = demand
+
+		self.leftover_queue.append(surplus)
+		self.history_leftovers.append(surplus)
+		self.history_met.append(met)
 
 		if not self.planned_capacity:
 			self.plan()
-		else:
-			if leftovers > 0:
-				self.planned_capacity[0] += leftovers
 
 	def plan(self):
 		#self.planned_capacity = [400]*7
-		self.planned_capacity = self.history_demand[-1:]
-		#self.planned_capacity = self.history_demand[-7:]
+		#self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]
+		#self.planned_capacity = self.history_demand[-1:]
+		self.planned_capacity = self.history_demand[-7:]
+
+	def tap_surplus(self, shortage):
+		sourced = 0
+
+		for i, _ in enumerate(self.leftover_queue):
+			take = min(self.leftover_queue[i], shortage)
+			self.leftover_queue[i] -= take
+			shortage -= take
+			sourced += take
+
+		return sourced
 
 	def visualize(self):
 		if not self.fig:
@@ -173,6 +198,30 @@ class Agent():
 	def score(self):
 		print("MAPE:", mean_absolute_percentage_error(self.history_demand, self.history_plan))
 
+def test_surplus_usage():
+	agent = Agent()
+	agent.planned_capacity = [400]*7
+
+	agent.advance(1, 200) # 200
+	agent.advance(2, 200) # 400
+	agent.advance(3, 200) # 600
+	agent.advance(4, 200) # 800
+	agent.advance(5, 200) # 1000
+	agent.advance(6, 200) # 1200
+	agent.advance(7, 200) # 1400, plan 200
+
+	assert agent.leftover_queue == [200]*7
+
+	agent.planned_capacity = [200]
+	agent.advance(8, 1400) # 200 burns, 200 planned, 1200 surplus
+
+	assert agent.leftover_queue == [0]*7
+	assert agent.history_met == [200]*7 + [1400]
+
+def selftest():
+	test_surplus_usage()
+	print("Self-testing OK")
+
 def play_game():
 	agent = Agent()
 
@@ -181,8 +230,9 @@ def play_game():
 
 	for ts, d in zip(df.DMY, demand):
 		agent.advance(ts, d)
-		agent.visualize()
+		#agent.visualize()
 
 	agent.score()
 
+selftest()
 play_game()

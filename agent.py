@@ -136,7 +136,7 @@ class Agent():
 		self.axes = None
 
 	def visual_init(self):
-		self.fig, self.axes = plt.subplots()
+		self.fig, self.axes = plt.subplots(1, 2)
 		self.fig.tight_layout()
 
 	def advance(self, ts, demand):
@@ -150,6 +150,8 @@ class Agent():
 		self.history_plan.append(plan)
 		self.history_ts.append(ts)
 
+		leftovers = 0
+
 		if surplus:
 			met = demand
 		elif deficit:
@@ -160,17 +162,17 @@ class Agent():
 			met = demand
 
 		self.leftover_queue.append(surplus)
-		self.history_leftovers.append(surplus)
+		self.history_leftovers.append(leftovers)
 		self.history_met.append(met)
 
 		if not self.planned_capacity:
 			self.plan()
 
 	def plan(self):
-		#self.planned_capacity = [400]*7
+		self.planned_capacity = [400]*7
 		#self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]
 		#self.planned_capacity = self.history_demand[-1:]
-		self.planned_capacity = self.history_demand[-7:]
+		#self.planned_capacity = self.history_demand[-7:]
 
 	def tap_surplus(self, shortage):
 		sourced = 0
@@ -187,11 +189,23 @@ class Agent():
 		if not self.fig:
 			self.visual_init()
 
-		self.axes.clear()
-		self.axes.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
-		self.axes.step(self.history_ts, self.history_demand)
-		self.axes.step(self.history_ts, self.history_met)
-		self.axes.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
+		demand = self.axes[0]
+		losses = self.axes[1]
+
+		demand.clear()
+		demand.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
+		demand.step(self.history_ts, self.history_demand, label="Спрос")
+		demand.step(self.history_ts, self.history_met, label="Удовлетворено")
+		demand.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
+		demand.legend()
+
+		losses.clear()
+		losses.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
+		losses.step(self.history_ts, self.history_expired, c="red", label="Истёк срок годности")
+		losses.step(self.history_ts, self.history_leftovers, c="orange", label="Продано застарелого")
+		losses.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
+		losses.legend()
+
 		self.fig.autofmt_xdate()
 		plt.pause(.01)
 

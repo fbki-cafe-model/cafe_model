@@ -1,5 +1,5 @@
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error
 from matplotlib.dates import AutoDateLocator, DateFormatter
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -124,15 +124,22 @@ class Agent():
 	def __init__(self):
 		self.planned_capacity = [400]*7
 		self.history_demand = []
+		self.history_plan = []
 		self.history_met = []
 		self.history_ts = []
 
+		self.fig = None
+		self.axes = None
+
+	def visual_init(self):
 		self.fig, self.axes = plt.subplots()
 
 	def advance(self, ts, demand):
-		leftovers = self.planned_capacity.pop(0) - demand
+		plan = self.planned_capacity.pop(0)
+		leftovers = plan - demand
 
 		self.history_demand.append(demand)
+		self.history_plan.append(plan)
 		self.history_ts.append(ts)
 
 		if leftovers >= 0:
@@ -146,19 +153,25 @@ class Agent():
 			if leftovers > 0:
 				self.planned_capacity[0] += leftovers
 
-		self.visualize()
-
 	def plan(self):
-		self.planned_capacity = [400]*7
+		#self.planned_capacity = [400]*7
+		self.planned_capacity = self.history_demand[-1:]
+		#self.planned_capacity = self.history_demand[-7:]
 
 	def visualize(self):
+		if not self.fig:
+			self.visual_init()
+
 		self.axes.clear()
 		self.axes.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
 		self.axes.step(self.history_ts, self.history_demand)
 		self.axes.step(self.history_ts, self.history_met)
 		self.axes.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
 		self.fig.autofmt_xdate()
-		plt.pause(.1)
+		plt.pause(.01)
+
+	def score(self):
+		print("MAPE:", mean_absolute_percentage_error(self.history_demand, self.history_plan))
 
 def play_game():
 	agent = Agent()
@@ -168,5 +181,8 @@ def play_game():
 
 	for ts, d in zip(df.DMY, demand):
 		agent.advance(ts, d)
+		agent.visualize()
+
+	agent.score()
 
 play_game()

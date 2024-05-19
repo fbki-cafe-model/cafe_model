@@ -126,6 +126,8 @@ class Agent():
 		self.leftover_queue = [0]*7
 
 		self.history_leftovers = []
+		self.history_expenses = []
+		self.history_income = []
 		self.history_expired = []
 		self.history_demand = []
 		self.history_plan = []
@@ -136,7 +138,7 @@ class Agent():
 		self.axes = None
 
 	def visual_init(self):
-		self.fig, self.axes = plt.subplots(1, 2)
+		self.fig, self.axes = plt.subplots(2, 2)
 		self.fig.tight_layout()
 
 	def advance(self, ts, demand):
@@ -165,14 +167,17 @@ class Agent():
 		self.history_leftovers.append(leftovers)
 		self.history_met.append(met)
 
+		self.history_expenses.append(plan * .25)
+		self.history_income.append(met * .27)
+
 		if not self.planned_capacity:
 			self.plan()
 
 	def plan(self):
-		self.planned_capacity = [400]*7
+		#self.planned_capacity = [400]*7
 		#self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]
 		#self.planned_capacity = self.history_demand[-1:]
-		#self.planned_capacity = self.history_demand[-7:]
+		self.planned_capacity = self.history_demand[-7:]
 
 	def tap_surplus(self, shortage):
 		sourced = 0
@@ -189,8 +194,9 @@ class Agent():
 		if not self.fig:
 			self.visual_init()
 
-		demand = self.axes[0]
-		losses = self.axes[1]
+		demand = self.axes[0][0]
+		losses = self.axes[0][1]
+		profit = self.axes[1][0]
 
 		demand.clear()
 		demand.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
@@ -205,6 +211,15 @@ class Agent():
 		losses.step(self.history_ts, self.history_leftovers, c="orange", label="Продано застарелого")
 		losses.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
 		losses.legend()
+
+		cum_income = np.cumsum(self.history_income)
+		cum_expenses = np.cumsum(self.history_expenses)
+
+		profit.clear()
+		profit.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
+		profit.step(self.history_ts, cum_income - cum_expenses, c="lime", label="Баланс")
+		profit.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
+		profit.legend()
 
 		self.fig.autofmt_xdate()
 		plt.pause(.01)
@@ -244,7 +259,7 @@ def play_game():
 
 	for ts, d in zip(df.DMY, demand):
 		agent.advance(ts, d)
-		#agent.visualize()
+		agent.visualize()
 
 	agent.score()
 

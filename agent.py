@@ -208,7 +208,7 @@ class Agent():
 		losses.clear()
 		losses.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))
 		losses.step(self.history_ts, self.history_expired, c="red", label="Истёк срок годности")
-		losses.step(self.history_ts, self.history_leftovers, c="orange", label="Продано застарелого")
+		losses.step(self.history_ts, self.history_leftovers, c="orange", label="Продано накопленных излишков")
 		losses.xaxis.set_major_formatter(DateFormatter("%Y-%m-%d (%a)"))
 		losses.legend()
 
@@ -259,8 +259,10 @@ def play_game():
 
 	for ts, d in zip(df.DMY, demand):
 		agent.advance(ts, d)
-		agent.visualize()
+		#agent.visualize()
 
+	agent.visualize()
+	plt.show()
 	agent.score()
 
 selftest()

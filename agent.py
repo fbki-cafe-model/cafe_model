@@ -139,7 +139,7 @@ class Agent():
 		self.axes = None
 
 	def visual_init(self):
-		self.fig, self.axes = plt.subplots(2, 2)
+		self.fig, self.axes = plt.subplots(2, 2, figsize=[6, 8])
 		self.fig.tight_layout()
 
 	def advance(self, ts, demand):
@@ -181,10 +181,10 @@ class Agent():
 		self.planned_capacity = [400]*7
 
 	def plan_avg_all_time(self):
-		self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]
+		self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]*7
 
 	def plan_previous_day(self):
-		self.planned_capacity = self.history_demand[-1:]
+		self.planned_capacity = self.history_demand[-1:]*7
 
 	def plan_previous_week(self):
 		self.planned_capacity = self.history_demand[-7:]
@@ -224,9 +224,9 @@ class Agent():
 		if not self.fig:
 			self.visual_init()
 
-		demand = self.axes[0][0]
-		losses = self.axes[0][1]
-		profit = self.axes[1][0]
+		demand = self.axes[1][0]
+		losses = self.axes[1][1]
+		profit = self.axes[0][0]
 
 		demand.clear()
 		demand.set_xlim(self.history_ts[0], self.history_ts[-1].ceil("30D"))

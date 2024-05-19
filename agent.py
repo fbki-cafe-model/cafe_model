@@ -122,6 +122,7 @@ def linear_v2():
 
 class Agent():
 	def __init__(self):
+		self.plan = self.plan_linear_regression
 		self.planned_capacity = [400]*7
 		self.leftover_queue = [0]*7
 
@@ -142,6 +143,9 @@ class Agent():
 		self.fig.tight_layout()
 
 	def advance(self, ts, demand):
+		if type(ts) in [int, float]:
+			ts = pd.to_datetime(ts)
+
 		expired = self.leftover_queue.pop(0)
 		plan = self.planned_capacity.pop(0)
 		surplus = max(plan - demand, 0)
@@ -167,17 +171,43 @@ class Agent():
 		self.history_leftovers.append(leftovers)
 		self.history_met.append(met)
 
-		self.history_expenses.append(plan * .25)
-		self.history_income.append(met * .27)
+		self.history_expenses.append(plan * .1)
+		self.history_income.append(met * .2)
 
 		if not self.planned_capacity:
 			self.plan()
 
-	def plan(self):
-		#self.planned_capacity = [400]*7
-		#self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]
-		#self.planned_capacity = self.history_demand[-1:]
+	def plan_static_fn(self):
+		self.planned_capacity = [400]*7
+
+	def plan_avg_all_time(self):
+		self.planned_capacity = [ int( sum(self.history_demand) / len(self.history_demand) ) ]
+
+	def plan_previous_day(self):
+		self.planned_capacity = self.history_demand[-1:]
+
+	def plan_previous_week(self):
 		self.planned_capacity = self.history_demand[-7:]
+
+	def plan_linear_regression(self):
+		train_context = 14
+		plan_horizon = 7
+
+		ts = pd.Series(self.history_ts[-train_context:])
+		onehot = np.eye(7)[ts.dt.weekday]
+
+		train_x = np.float64(ts)[:, None] * onehot
+		train_y = self.history_demand[-train_context:]
+
+		model = Lasso()
+		model.fit(train_x, train_y)
+
+		run_ts = pd.Series(self.history_ts[-plan_horizon:]) + pd.DateOffset(plan_horizon)
+		onehot = np.eye(7)[run_ts.dt.weekday]
+		x = np.float64(run_ts)[:, None] * onehot
+		y = model.predict(x)
+
+		self.planned_capacity = list(y)
 
 	def tap_surplus(self, shortage):
 		sourced = 0
@@ -226,10 +256,12 @@ class Agent():
 
 	def score(self):
 		print("MAPE:", mean_absolute_percentage_error(self.history_demand, self.history_plan))
+		print("Balance:", sum(self.history_income) - sum(self.history_expenses))
 
 def test_surplus_usage():
 	agent = Agent()
 	agent.planned_capacity = [400]*7
+	agent.plan = agent.plan_static_fn
 
 	agent.advance(1, 200) # 200
 	agent.advance(2, 200) # 400
@@ -262,8 +294,10 @@ def play_game():
 		#agent.visualize()
 
 	agent.visualize()
-	plt.show()
 	agent.score()
+	plt.show()
+
+	return agent
 
 selftest()
-play_game()
+x = play_game()
